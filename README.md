@@ -1,5 +1,5 @@
 # micrntwk
-## 安装：devtools::install_github("wqssf/micrntwk")
+## 安装：devtools::install_github("wqssf102/micrntwk")
 &emsp;&emsp;以***Hmisc***包的rcorr函数计算spearman相关系数或minerva包的mine函数计算变量间的连接强度.根据所给阈值筛选变量，将变量之间的关系矩阵转为igraph包的对象，并计算网络拓扑特征。特别的，以qgraph包的qgraph.layout.fruchtermanreingold函数获取网络节点和边的坐标，同时根据用户输入的模块参数，计算每一个模块所含节点数目占总节点的百分比，最后使用ggplot2绘图.  
 &emsp;&emsp;以calcor函数计算变量之间的关系系数，可以查看calcor函数的帮助文档:
 ```{r,echo=TRUE}
