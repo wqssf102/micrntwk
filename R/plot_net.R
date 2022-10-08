@@ -12,7 +12,7 @@
 
 ########################################################
 plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_position_num=c(1,0.85),
-                     point_size=c("dg","nc"),ex_sp_num=NULL,per_modules=NULL,nrow=2,group_order=NULL,node_text_size=5,legend_text_size=20,group_text_size=7){
+                     point_size=c("dg","nc"),ex_sp_num=0,per_modules=0,nrow=2,group_order=NULL,node_text_size=5,legend_text_size=20,group_text_size=7){
   point_size <- match.arg(point_size, several.ok = TRUE)
   point_size <- unique(point_size)
 
@@ -22,7 +22,19 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
                     point_size=point_size,ex_sp_num=ex_sp_num,per_modules=per_modules){
 
     #############################################################
-    if(!(is.null(ex_sp_num))){
+    if((!(is.numeric(ex_sp_num)))|(!(is.numeric(per_modules)))){
+      stop("ex_sp_num and per_modules must be numeric")
+    }
+
+    # if(per_modules==0){
+    #   stop("per_modules must be greater than zero")
+    # }
+    #
+    if(trunc(ex_sp_num)-ex_sp_num!=0){
+      stop("ex_sp_num must be integer")
+    }
+    ##
+    if(ex_sp_num>0){
       node_dt$node_lb_dg <- node_dt$node_name
       node_dt <- node_dt[order(node_dt$Degree,decreasing = TRUE),]
       node_dt[c((ex_sp_num+1):nrow(node_dt)),"node_lb_dg"] <- NA
@@ -35,33 +47,32 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
     }
     ###
     ###
-    if(is.null(per_modules)){
-      node_dt$mdcol <- paste(node_dt$md_name," (",sprintf("%.2f",node_dt$mdper),"%)",sep = "")
-    }else{
-      per_modules <- round(per_modules,digits = 2)
-      ctmx <- node_dt[!(duplicated(node_dt$md_name)),]
-      ctmx <- ctmx[(ctmx$mdper)>per_modules,]
-      node_dt$mdcol <- ifelse((node_dt$mdper)>per_modules,
-                              paste(node_dt$md_name," (",sprintf("%.2f",node_dt$mdper),"%)",sep = ""),
-                              paste("S"," (",sprintf("%.2f",100-sum(ctmx$mdper)),"%)",sep = ""))
-    }
+    per_modules <- round(per_modules,digits = 2)
+    ctmx <- node_dt[!(duplicated(node_dt$md_name)),]
+    ctmx <- ctmx[(ctmx$mdper)>per_modules,]
+    node_dt$mdcol <- ifelse((node_dt$mdper)>per_modules,
+                            paste(node_dt$md_name," (",sprintf("%.2f",node_dt$mdper),"%)",sep = ""),
+                            paste("S"," (",sprintf("%.2f",100-sum(ctmx$mdper)),"%)",sep = ""))
+
     #######
-    if((is.null(per_modules))){
-      md_per <- node_dt[!(duplicated(node_dt$md_name)),]
-      md_per <- md_per[c("md_name","mdcol")]
-      edgedt <- dplyr::inner_join(edgedt,md_per,by="md_name")
-    }else{
-      ctdt <- node_dt[!(duplicated(node_dt$mdper)),]
-      ctdt0 <- ctdt[c("md_name","mdcol")]
-      ctdt <- ctdt0[stringr::str_detect(ctdt0$mdcol,"S",negate = TRUE),]
-      edgedt <- dplyr::left_join(edgedt,ctdt,by="md_name")
-      edgedt$mdcol <- ifelse(is.na(edgedt$mdcol),(ctdt0[stringr::str_detect(ctdt0$mdcol,"S"),])[1,2],edgedt$mdcol)
-    }
+    ctdt <- node_dt[!(duplicated(node_dt$md_name)),]
+    ctdt0 <- ctdt[c("md_name","mdcol")]
+    ctdt <- ctdt0[stringr::str_detect(ctdt0$mdcol,"S",negate = TRUE),]
+    edgedt <- dplyr::left_join(edgedt,ctdt,by="md_name")
+    edgedt$mdcol <- ifelse(is.na(edgedt$mdcol),(ctdt0[stringr::str_detect(ctdt0$mdcol,"S"),])[1,2],edgedt$mdcol)
     #####
+    node_dt$md_name <-  as.numeric(as.character(node_dt$md_name))
+    node_dt <- node_dt[order(node_dt$md_name,decreasing = FALSE),]
+    #####
+    node_dt$mdcol <- as.factor(node_dt$mdcol)
+    leg_order <- node_dt[!duplicated(node_dt$md_name),]
+    node_dt$mdcol <- factor(node_dt$mdcol,levels = leg_order$mdcol)
+    edgedt$mdcol <- as.factor(edgedt$mdcol)
+    edgedt$mdcol <- factor(edgedt$mdcol,levels = leg_order$mdcol)
+
     xyinf <- list(node_dt=node_dt,edgedt=edgedt)
     return(xyinf)
   }
-
 
   ###########################################
   node_dt <- netwkinf$node_inf
@@ -89,39 +100,26 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
   if(is.null(xyinf_node$group)){
     p <- ggplot()
     if(ex_edg==TRUE){
-      if((is.null(per_modules))){
-        p <- p+geom_curve(data = xyinf_edge,aes(x = V1.x,y=V2.x,
-                                                xend=V1.y,yend=V2.y,
-                                                color=factor(md_name)),
-                          size = 0.5,curvature = -0.1,show.legend = FALSE)####
-      }else{
-        p <- p+geom_curve(data = xyinf_edge,aes(x = V1.x,y=V2.x,
-                                                xend=V1.y,yend=V2.y,
-                                                color=factor(mdcol)),
-                          size = 0.5,curvature = -0.1,show.legend = FALSE)#####
-      }
+      p <- p+geom_curve(data = xyinf_edge,aes(x = V1.x,y=V2.x,
+                                              xend=V1.y,yend=V2.y,
+                                              color=mdcol),
+                        size = 0.5,curvature = -0.1,show.legend = FALSE)#####
     }
     #####################
     if(point_size=="dg"){
-      if((is.null(per_modules))){
-        p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=Degree,fill=factor(md_name)),shape=21)
-      }else{
-        p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=Degree,fill=factor(mdcol)),shape=21)
-      }}else{
-        ######
-        if(is.null(node_dt$natural_connectivity)){
-          stop("no nc\n")
-        }
-        message("size=1/natural_connectivity")
-        if((is.null(per_modules))){
-          p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=1/natural_connectivity,fill=factor(md_name)),shape=21)
-        }else{
-          p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=1/natural_connectivity,fill=factor(mdcol)),shape=21)
-        }}
+      p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=Degree,fill=mdcol),shape=21)
+    }else{
+      ######
+      if(is.null(node_dt$natural_connectivity)){
+        stop("no nc\n")
+      }
+      message("size=1/natural_connectivity")
+      p <- p+geom_point(data = xyinf_node,aes(x=V1,y=V2,size=1/natural_connectivity,fill=mdcol),shape=21)
+    }
 
     ##
-    if(!(is.null(ex_sp_num))){
-      p <- p+geom_text(data = xyinf_node,aes(x=V1,y=V2,label=node_lb_dg),show.legend = FALSE)
+    if(ex_sp_num>0){
+      p <- p+geom_text(data = xyinf_node,na.rm = TRUE,aes(x=V1,y=V2,label=node_lb_dg),show.legend = FALSE)
     }
     ##
     p <- p+scale_size(range = c(1,5))+####
@@ -151,57 +149,44 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
       ################################plot
       ###########################
       if(ex_edg==TRUE){
-        if((is.null(per_modules))){
-          p <- p+geom_curve(data = cted,aes(x = V1.x,y=V2.x,
-                                            xend=V1.y,yend=V2.y,
-                                            color=factor(md_name)),
-                            size = 0.5,curvature = -0.1,show.legend = FALSE)####
-        }else{
-          p <- p+ geom_curve(data = cted,aes(x = V1.x,y=V2.x,
-                                             xend=V1.y,yend=V2.y,
-                                             color=factor(mdcol)),
-                             size = 0.5,curvature = -0.1,show.legend = FALSE)#####
-        }
+        p <- p+ geom_curve(data = cted,aes(x = V1.x,y=V2.x,
+                                           xend=V1.y,yend=V2.y,
+                                           color=mdcol),
+                           size = 0.5,curvature = -0.1,show.legend = FALSE)#####
       }
       #####################
       ##############
       if(point_size=="dg"){
-        if((is.null(per_modules))){
-          p <- p+geom_point(data = ctnd,aes(x=V1,y=V2,size=Degree,fill=factor(md_name)),shape=21)
-        }else{
-          p <- p+ geom_point(data = ctnd,aes(x=V1,y=V2,size=Degree,fill=factor(mdcol)),shape=21)
-        }}else{
-          ######
-          if(is.null(node_dt$natural_connectivity)){
-            stop("no nc\n")
-          }
-          message("size=1/natural_connectivity")
-          if((is.null(per_modules))){
-            p <- p+ geom_point(data = ctnd,aes(x=V1,y=V2,size=1/natural_connectivity,fill=factor(md_name)),shape=21)
-          }else{
-            p <- p+ geom_point(data = ctnd,aes(x=V1,y=V2,size=1/natural_connectivity,fill=factor(mdcol)),shape=21)
-          }}
-
-      if(!(is.null(ex_sp_num))){
-        p <- p+ geom_text(data = ctnd,aes(x=V1,y=V2,label=node_lb_dg),show.legend = FALSE,family="serif",size=node_text_size)
+        p <- p+ geom_point(data = ctnd,aes(x=V1,y=V2,size=Degree,fill=mdcol),shape=21)
+      }else{
+        ######
+        if(is.null(node_dt$natural_connectivity)){
+          stop("no nc\n")
+        }
+        message("size=1/natural_connectivity")
+        p <- p+ geom_point(data = ctnd,aes(x=V1,y=V2,size=1/natural_connectivity,fill=mdcol),shape=21)
       }
-################################################################
-		if(grpnm_position=="ld"){
-		xx <- min(ctnd$V1)*grpnm_position_num[1]
-		yy <- min(ctnd$V2)*grpnm_position_num[2]
-		}else if(grpnm_position=="lt"){
-		xx <- min(ctnd$V1)*grpnm_position_num[1]
-		yy <- max(ctnd$V2)*grpnm_position_num[2]
-		}else if(grpnm_position=="rd"){
-		xx <- max(ctnd$V1)*grpnm_position_num[1]
-		yy <- min(ctnd$V2)*grpnm_position_num[2]
-		}else if(grpnm_position=="rt"){
-		xx <- max(ctnd$V1)*grpnm_position_num[1]
-		yy <- max(ctnd$V2)*grpnm_position_num[2]
-		}else{
-		stop("grpnm_position must is one of 'ld','lt','rd',or 'rt'")
-		}
-####################################################
+
+      if(ex_sp_num>0){
+        p <- p+ geom_text(data = ctnd,na.rm = TRUE,aes(x=V1,y=V2,label=node_lb_dg),show.legend = FALSE,family="serif",size=node_text_size)
+      }
+      ################################################################
+      if(grpnm_position=="ld"){
+        xx <- min(ctnd$V1)*grpnm_position_num[1]
+        yy <- min(ctnd$V2)*grpnm_position_num[2]
+      }else if(grpnm_position=="lt"){
+        xx <- min(ctnd$V1)*grpnm_position_num[1]
+        yy <- max(ctnd$V2)*grpnm_position_num[2]
+      }else if(grpnm_position=="rd"){
+        xx <- max(ctnd$V1)*grpnm_position_num[1]
+        yy <- min(ctnd$V2)*grpnm_position_num[2]
+      }else if(grpnm_position=="rt"){
+        xx <- max(ctnd$V1)*grpnm_position_num[1]
+        yy <- max(ctnd$V2)*grpnm_position_num[2]
+      }else{
+        stop("grpnm_position must be one of 'ld','lt','rd',or 'rt'")
+      }
+      ####################################################
       ptlst[[i]] <- p+
         annotate("text",x=xx,y=yy,hjust=0,vjust=0,family="serif",size=group_text_size,
                  label=i)+
@@ -227,4 +212,3 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
   names(pltres) <- c("xyinf_node","xyinf_edge","plt")
   return(pltres)
 }
-
