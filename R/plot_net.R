@@ -66,9 +66,9 @@ plot_net <- function(netwkinf=netwkinf,ex_edg=FALSE,grpnm_position="ld",grpnm_po
     #####
     node_dt$mdcol <- as.factor(node_dt$mdcol)
     leg_order <- node_dt[!duplicated(node_dt$md_name),]
-    node_dt$mdcol <- factor(node_dt$mdcol,levels = leg_order$mdcol)
+    node_dt$mdcol <- factor(node_dt$mdcol,levels = unique(leg_order$mdcol))
     edgedt$mdcol <- as.factor(edgedt$mdcol)
-    edgedt$mdcol <- factor(edgedt$mdcol,levels = leg_order$mdcol)
+    edgedt$mdcol <- factor(edgedt$mdcol,levels = unique(leg_order$mdcol))
 
     xyinf <- list(node_dt=node_dt,edgedt=edgedt)
     return(xyinf)
