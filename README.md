@@ -90,4 +90,34 @@ ndedinf <- get_node_edg(ggdt = crores,nc = FALSE)
 ptres <-  plot_net(netwkinf = ndedinf,ex_edg = T,per_modules = 5,ex_sp_num =5,point_size = "dg",nrow = 2,node_text_size = 6,grpnm_position = "ld")
 ptres$plt
 ```
-
+## 提取模块包含的物种
+```
+##请注意，这里的函数已经根据模块所包含的物种个数对模块重新命名，
+##使得排在前面的模块的物种数最大，如使得模块1的物种数多于模块2
+spdata <- get_module_sp(ggdt = crores,spdt = cordt,seed = 123456)
+##但这里的模块包含N个物种，一般地，可以使用PCA、PCoA、Z-sore转化等方法，将N个物种的丰度表（即N列数据）转为1列，这1列的数据代表整个模块的物种信息
+#提取AA组的module1并做Z-sore转化
+mdspneed <- as.data.frame(apply(spdata$AA$module1, 2, function(x){
+  (x-mean(x))/sd(x)
+}))
+mdspneed <- as.data.frame(apply(mdspneed, 1, mean))
+names(mdspneed) <- "Z_score"
+##一个网络图一般包含多个模块，用循环来提取并做Z-sore转化
+spdata_A <- spdata$AA
+names(spdata_A)##可以看到spdata_A包含了group内容，这里我们不需要group，因此删掉
+spdata_A <- spdata_A[!(names(spdata_A)%in%"group")]
+##构建一个空的列表，存放每一个模块的结果
+mddtlist <- list()
+for(i in names(spdata_A)){
+  ctdt <- spdata_A[[i]]
+  ctdt <- as.data.frame(apply(spdata$AA[[i]], 2, function(x){
+    (x-mean(x))/sd(x)
+  }))
+ctdt <- as.data.frame(apply(ctdt, 1, mean))
+names(ctdt) <- i
+mddtlist[[i]] <- ctdt
+}
+####将list转为dataframe,按列合并
+mddtlist <- do.call(cbind,lapply(mddtlist, data.frame))
+head(mddtlist)##查看结果，即可得到每一个模块的结果，接下来读取环因子数据，即可根据自己需要做分析
+```
