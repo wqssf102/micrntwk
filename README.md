@@ -110,7 +110,7 @@ spdata_A <- spdata_A[!(names(spdata_A)%in%"group")]
 mddtlist <- list()
 for(i in names(spdata_A)){
   ctdt <- spdata_A[[i]]
-  ctdt <- as.data.frame(apply(spdata$AA[[i]], 2, function(x){
+  ctdt <- as.data.frame(apply(spdata$AA[[i]], 2, function(x){##这里提取AA组，根据在自己的实际情况更改
     (x-mean(x))/sd(x)
   }))
 ctdt <- as.data.frame(apply(ctdt, 1, mean))
