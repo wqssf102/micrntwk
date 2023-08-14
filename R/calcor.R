@@ -64,7 +64,8 @@ calcora <- function(codt=codt,r_th=0.6,p_th=0.05){
   res_dt_gg$edcol <- ifelse(res_dt_gg$R>0,1,-1)
 gg <- graph.data.frame(res_dt_gg,directed = FALSE)
 E(gg)$weight <- abs(E(gg)$R)
-# gg <- simplify(gg,remove.multiple = F)
+gg <- simplify(gg)
+ E(gg)$weight <- E(gg)$weight/2
 resgg <- list(gg,res_dt_gg)
 names(resgg) <- c("gg","corgg")
 set.seed(123456)
@@ -85,6 +86,7 @@ mc <- mc[mc$value>r_th,]
 gg <- graph.data.frame(mc[,c(1:2)],directed = FALSE)
 E(gg)$weight <- mc$value
 gg <- simplify(gg)
+ E(gg)$weight <- E(gg)$weight/2
 resgg <- list(gg,mc)
 names(resgg) <- c("gg","corgg")
 set.seed(123456)
