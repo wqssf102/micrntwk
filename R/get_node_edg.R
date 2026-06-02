@@ -38,7 +38,10 @@ get_node_edg <- function(ggdt=ggdt,nc=FALSE){
     node_dt <- as.data.frame(qgraph.layout.fruchtermanreingold(as.matrix(ed1[(ncol(ed1)-1):(ncol(ed1))]),vcount=vcount(gg),area=(vcount(gg)^3),repulse.rad=(vcount(gg)^pi),niter = 1000))
     node_dt$node_name <- spnmdt$nm###
     #####
-    node_dt$Degree <- as.data.frame(degree(gg))[,1]####degree
+	nt_degree <- as.data.frame(degree(gg))
+	names(nt_degree) <- "Degree"
+	nt_degree$ndnm <- row.names(nt_degree)
+	node_dt <- dplyr::inner_join(node_dt,nt_degree,by=c("node_name"="ndnm"))####degree
     ##
     ####
     set.seed(123456)
